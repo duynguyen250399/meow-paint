@@ -5,6 +5,7 @@ function Button({
     style,
     className,
     title,
+    disabled,
     outlined,
     padding = 5,
     borderRadius = 3,
@@ -12,7 +13,7 @@ function Button({
     hoverColor = '#dedede',
     borderWidth = 1,
     borderStyle = 'solid',
-    bgColor,
+    bgColor = '#fff',
     titleStyle,
     children
 }) {
@@ -58,10 +59,11 @@ function Button({
     return (
         <button
             className={className}
-            style={{ ...buttonStyle, style }}
+            style={{ ...buttonStyle, ...style, opacity: disabled ? 0.5 : 1 }}
             onClick={onClick}
             onMouseOver={onHover}
             onMouseLeave={onLeave}
+            disabled={disabled}
         >
             {
                 children ? children :

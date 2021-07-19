@@ -11,6 +11,9 @@ import ColorPicker from '../ColorPicker';
 import Button from '../Button';
 import { colors } from '../../constants/theme';
 import { selectImageDataArray, selectImageDataIndex } from '../../redux/slices/imageData';
+import { paintConfig } from '../../constants/paintConfig';
+import { selectPaintAction } from '../../redux/slices/app';
+import PaintActionButton from '../PaintActionButton';
 
 function SideNav() {
 
@@ -18,6 +21,8 @@ function SideNav() {
     const fillColor = useSelector(selectFillColor);
     const imageDataIndex = useSelector(selectImageDataIndex);
     const imageDataArray = useSelector(selectImageDataArray);
+
+    const paintAction = useSelector(selectPaintAction);
 
     const dispatch = useDispatch();
 
@@ -33,16 +38,16 @@ function SideNav() {
         }))
     }
 
-    const onResetPaintBoard = () =>{
+    const onResetPaintBoard = () => {
         dispatch(actions.clearImageData());
     }
 
-    const onUndo = () =>{
+    const onUndo = () => {
         let index = imageDataIndex > 0 ? imageDataIndex - 1 : 0;
         dispatch(actions.undo({ index }));
     }
 
-    const onRedo = () =>{
+    const onRedo = () => {
         let index = imageDataIndex < imageDataArray.length - 1 ? imageDataIndex + 1 : imageDataArray.length - 1;
         dispatch(actions.redo({ index }));
     }
@@ -76,6 +81,23 @@ function SideNav() {
                         valueText={fillColor}
                         onChange={onSaveFillColor}
                     />
+
+                    <div className='side-nav__container__toolbar__paint-tool-grid'>
+                        <PaintActionButton
+                            options={paintConfig.penMode}
+                            isActive={paintConfig.penMode.action === paintAction}
+                        />
+
+                        <PaintActionButton
+                            options={paintConfig.rectStrokeMode}
+                            isActive={paintConfig.rectStrokeMode.action === paintAction}
+                        />
+
+                        <PaintActionButton
+                            options={paintConfig.rectFillMode}
+                            isActive={paintConfig.rectFillMode.action === paintAction}
+                        />
+                    </div>
 
                     {/* Undo and Redo */}
                     <div className='d-flex mt-2'>
@@ -117,6 +139,7 @@ function SideNav() {
                         className='w-100'
                         padding={10}
                         hoverColor={colors.primaryLight}
+                        disabled={imageDataArray.length <= 1}
                     >
                         <SaveIcon width={17} height={17} className='mr-2' />
                         <span style={{ color: '#fff' }}>Save</span>

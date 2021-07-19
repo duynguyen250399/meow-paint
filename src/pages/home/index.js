@@ -2,25 +2,28 @@ import React, { useState } from 'react';
 import { useDispatch, useSelector } from "react-redux";
 import Canvas from '../../components/Canvas';
 import { PaintAction } from '../../constants';
-import { selectStrokeColor } from '../../redux/slices/color';
+import { selectPaintAction } from '../../redux/slices/app';
+import { selectFillColor, selectStrokeColor } from '../../redux/slices/color';
 
 function Home() {
 
     const [canvasCursor, setCanvasCursor] = useState('/cursors/pencil.png');
 
     const strokeColor = useSelector(selectStrokeColor);
+    const fillColor = useSelector(selectFillColor);
+    const paintAction = useSelector(selectPaintAction);
 
     return (
         <div className='home-page'>
             <Canvas 
                 strokeColor={strokeColor}
-                fillColor='#000'
+                fillColor={fillColor}
                 strokeWidth={3}
                 width={window.innerWidth}
-                height={window.innerHeight}
+                height={window.outerHeight}
                 lineCap='round'
                 lineJoin='round'
-                paintAction={PaintAction.PEN}
+                paintAction={paintAction}
                 bgColor='#fff'
                 className='canvas'
                 cursorImage={canvasCursor}

@@ -31,6 +31,25 @@
         &__toolbar{
             max-height: 80%;
             overflow-y: auto;
+
+            &__btn-paint-tool{
+                
+                img{
+                    width: 15px;
+                    height: 15px;
+                }
+
+                &--active{
+                    border: 2px solid $secondaryColor !important;
+                    background-color: $grayLightColor !important;
+                }
+            }
+
+            &__paint-tool-grid{
+                display: grid;
+                grid-template-columns: auto auto auto;
+                gap: 5px;
+            }
         }
     }
 

@@ -77,7 +77,7 @@ function ColorPicker({
             <div className='title-color-picker'>{title}</div>
             <button className={`${elementClassName} btn-color-picker`}>
                 <div style={{ backgroundColor: color }} className='color-review'></div>
-                <div className='value-text-color-picker'>{valueText}</div>
+                <div className='value-text-color-picker' style={{ color: color }}>{valueText}</div>
             </button>
         </div>
     )

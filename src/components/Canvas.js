@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { PaintAction } from '../constants';
+import { PaintAction, Shape } from '../constants';
 import { actions } from '../redux/slices';
 import { selectClear, selectImageDataArray, selectImageDataIndex, selectRedo, selectUndo } from '../redux/slices/imageData';
 import { fillCircle } from '../utils/drawHelper';
@@ -31,7 +31,7 @@ function Canvas({
     const dataRef = useRef();
 
     const [drawing, setDrawing] = useState(false);
-    const [dataIndexState, setDataIndexState] = useState();
+    const [rects, setRects] = useState([]);
 
     const isClear = useSelector(selectClear);
     const isUndo = useSelector(selectUndo);
@@ -41,6 +41,9 @@ function Canvas({
 
 
     const dispatch = useDispatch();
+
+    var drawX = 0, drawY = 0;
+    var rectWidth = 0, rectHeight = 0;
 
     const init = () => {
         const canvas = canvasRef.current;
@@ -75,8 +78,6 @@ function Canvas({
     }, [])
 
     useEffect(() => {
-
-        setDataIndexState(imageDataIndex);
 
         if (isClear) {
             clear();
@@ -122,33 +123,47 @@ function Canvas({
         prevCoords.current = { x: offsetX, y: offsetY };
 
         context.beginPath();
+
         context.moveTo(offsetX, offsetY);
     }
 
-    const penDraw = (e) => {
-        const { offsetX, offsetY } = e;
-
+    const drawState = (e) => {
         const context = contextRef.current;
 
-        context.lineCap = lineCap;
-        context.lineJoin = lineJoin;
-        context.lineWidth = strokeWidth;
-        context.strokeStyle = strokeColor;
-
-        context.lineTo(offsetX, offsetY);
-        context.stroke();
+        rects.forEach(rect => {
+            context.beginPath();
+            context.rect(rect.x, rect.y, rect.width, rect.height);
+            if (!rect.fill) {
+                context.strokeStyle = rect.color;
+                context.lineWidth = strokeWidth;
+                context.stroke();
+            }
+            else {
+                context.fillStyle = rect.color;
+                context.fill();
+            }
+            context.closePath();
+        })
     }
 
     const draw = ({ nativeEvent }) => {
 
         if (drawing) {
+
             switch (paintAction) {
                 case PaintAction.PEN:
                     penDraw(nativeEvent);
                     break;
+                case PaintAction.RECT_STROKE:
+                    drawShape(nativeEvent, Shape.RECTANGLE);
+                    break;
+                case PaintAction.RECT_FILL:
+                    drawShape(nativeEvent, Shape.RECTANGLE);
+                    break;
                 default:
                     console.log('Invalid paint action!');
             }
+
         }
     }
 
@@ -166,14 +181,107 @@ function Canvas({
 
         if (drawing) {
             setDrawing(false);
-
-            context.stroke();
             context.closePath();
+        }
+
+        if (paintAction === PaintAction.RECT_STROKE) {
+            setRects([...rects,
+            {
+                x: drawX,
+                y: drawY,
+                width: rectWidth,
+                height: rectHeight,
+                fill: false,
+                color: strokeColor
+            }
+            ]);
+        }
+        else if (paintAction === PaintAction.RECT_FILL) {
+            setRects([...rects,
+            {
+                x: drawX,
+                y: drawY,
+                width: rectWidth,
+                height: rectHeight,
+                fill: true,
+                color: fillColor
+            }
+            ]);
         }
 
         const imageData = context.getImageData(0, 0, width, height);
 
         dispatch(actions.addImageData({ data: imageData }));
+    }
+
+    const penDraw = (e) => {
+        const context = contextRef.current;
+        const { offsetX, offsetY } = e;
+
+        context.lineCap = lineCap;
+        context.lineJoin = lineJoin;
+        context.lineWidth = strokeWidth;
+        context.strokeStyle = strokeColor;
+
+        context.lineTo(offsetX, offsetY);
+        context.stroke();
+
+    }
+
+    const drawShape = (e, shape) => {
+        const context = contextRef.current;
+        const { offsetX, offsetY } = e;
+
+        context.lineCap = lineCap;
+        context.lineJoin = lineJoin;
+        context.lineWidth = strokeWidth;
+        context.strokeStyle = strokeColor;
+
+        context.clearRect(0, 0, width, height);
+
+        drawState(e);
+
+        context.beginPath();
+
+        if (shape === Shape.RECTANGLE) {
+            rectWidth = Math.abs(offsetX - prevCoords.current.x);
+            rectHeight = Math.abs(offsetY - prevCoords.current.y);
+
+            const diffX = offsetX - prevCoords.current.x;
+            const diffY = offsetY - prevCoords.current.y;
+
+
+            if (diffX > 0 && diffY > 0) {
+                drawX = prevCoords.current.x;
+                drawY = prevCoords.current.y;
+            }
+            else if (diffX > 0 && diffY < 0) {
+                drawX = prevCoords.current.x;
+                drawY = prevCoords.current.y - rectHeight;
+            }
+            else if (diffX < 0 && diffY > 0) {
+                drawX = prevCoords.current.x - rectWidth;
+                drawY = prevCoords.current.y;
+            }
+            else {
+                drawX = offsetX;
+                drawY = offsetY;
+            }
+
+            context.rect(drawX, drawY, rectWidth, rectHeight);
+
+            if (paintAction === PaintAction.RECT_STROKE) {
+                context.strokeStyle = strokeColor;
+                context.lineWidth = strokeWidth;
+                context.lineCap = lineCap;
+                context.lineJoin = lineJoin;
+                context.stroke();
+            }
+            else if (paintAction === PaintAction.RECT_FILL) {
+                context.fillStyle = fillColor;
+                context.fill();
+            };
+        }
     }
 
     const clear = () => {
@@ -183,6 +291,8 @@ function Canvas({
 
         const initialImageData = context.getImageData(0, 0, width, height);
         dispatch(actions.addImageData({ data: initialImageData }));
+
+        setRects([]);
     }
 
     const undo = () => {
