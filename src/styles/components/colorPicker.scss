@@ -1,0 +1,32 @@
+.title-color-picker{
+    font-size: 16px;
+    font-weight: 500;
+}
+
+.btn-color-picker{
+    border: 1px solid rgb(228, 225, 225);
+    background-color: white;
+    border-radius: 3px;
+    display: block;
+    width: 100%;
+    padding: 5px 0;
+    transition: 0.3s;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    .color-review{
+        width: 17px;
+        height: 17px;
+        border-radius: 2px;
+        margin-right: 10px;
+    }
+
+    .value-text-color-picker{
+        font-weight: 500;
+    }
+
+    &:hover{
+        background-color: rgba(250, 248, 248, 0.4);
+    }
+}
