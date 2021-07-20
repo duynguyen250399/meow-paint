@@ -1,6 +1,9 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { PaintAction, Shape } from '../constants';
+import { Line } from '../models/line';
+import { Pencil } from '../models/pencil';
+import { Rectangle } from '../models/shape';
 import { actions } from '../redux/slices';
 import { selectClear, selectImageDataArray, selectImageDataIndex, selectRedo, selectSave, selectUndo } from '../redux/slices/imageData';
 import { fillCircle } from '../utils/drawHelper';
@@ -22,6 +25,8 @@ function Canvas({
     className
 }) {
 
+    const pencil = new Pencil(strokeColor, strokeWidth);
+
     const canvasRef = useRef();
     const contextRef = useRef();
     const prevCoords = useRef({
@@ -29,9 +34,17 @@ function Canvas({
         y: 0
     });
     const dataRef = useRef();
+    const cacheDrawDataRef = useRef([]);
+    const drawDataRef = useRef([]);
+    const drawDataIndexRef = useRef();
+
+    const drawDataBufferRef = useRef([]);
+    const startDrawPositionRef = useRef({
+        x: 0,
+        y: 0
+    })
 
     const [drawing, setDrawing] = useState(false);
-    const [rects, setRects] = useState([]);
 
     const isClear = useSelector(selectClear);
     const isUndo = useSelector(selectUndo);
@@ -103,13 +116,11 @@ function Canvas({
     })
 
     const onPressUndo = () => {
-        let index = dataRef.current.index > 0 ? dataRef.current.index - 1 : 0;
-        dispatch(actions.undo({ index }));
+        undo();
     }
 
     const onPressRedo = () => {
-        let index = dataRef.current.index < dataRef.current.length - 1 ? dataRef.current.index + 1 : dataRef.current.length - 1;
-        dispatch(actions.redo({ index }));
+        redo();
     }
 
     const fillBackground = () => {
@@ -130,25 +141,101 @@ function Canvas({
         context.beginPath();
 
         context.moveTo(offsetX, offsetY);
+        startDrawPositionRef.current = { x: offsetX, y: offsetY };
     }
 
-    const drawState = (e) => {
+    const stopDraw = ({ nativeEvent }) => {
+
+        const context = contextRef.current;
+        const { offsetX, offsetY } = nativeEvent;
+
+        if (
+            offsetX === prevCoords.current.x
+            && offsetY === prevCoords.current.y
+            && paintAction === PaintAction.PEN
+        ) {
+            fillCircle(context, offsetX, offsetY, strokeWidth / 2, strokeColor);
+            const data = {
+                type: "line",
+                x1: startDrawPositionRef.current.x,
+                y1: startDrawPositionRef.current.y,
+                x2: offsetX,
+                y2: offsetY,
+                strokeColor: strokeColor,
+                strokeWidth: strokeWidth
+            }
+
+            drawDataBufferRef.current.push(data);
+        }
+
+        if (drawing) {
+            setDrawing(false);
+            context.closePath();
+        }
+
+        if (paintAction === PaintAction.RECT_STROKE || paintAction === PaintAction.RECT_FILL) {
+            drawDataBufferRef.current.push({
+                type: 'rectangle',
+                x: drawX,
+                y: drawY,
+                width: rectWidth,
+                height: rectHeight,
+                outlined: paintAction === PaintAction.RECT_STROKE,
+                fillColor: fillColor,
+                strokeColor: strokeColor,
+                strokeWidth: strokeWidth
+            });
+        }
+
+        updateDrawData();
+
+    }
+
+    const updateDrawData = () => {
+        if (drawDataRef.current.length > 0) {
+            const lastIndex = drawDataRef.current.length - 1;
+            drawDataRef.current.push([...drawDataRef.current[lastIndex], ...drawDataBufferRef.current]);
+        }
+        else {
+            drawDataRef.current.push(drawDataBufferRef.current);
+        }
+
+        drawDataBufferRef.current = [];
+    }
+
+    const drawUpdate = () => {
+
         const context = contextRef.current;
 
-        rects.forEach(rect => {
-            context.beginPath();
-            context.rect(rect.x, rect.y, rect.width, rect.height);
-            if (!rect.fill) {
-                context.strokeStyle = rect.color;
-                context.lineWidth = strokeWidth;
-                context.stroke();
+        if (drawDataRef.current.length > 0) {
+            const lastIndex = drawDataRef.current.length - 1;
+
+            context.clearRect(0, 0, width, height);
+
+            if (drawDataRef.current[lastIndex]) {
+                drawDataRef.current[lastIndex].forEach(data => {
+                    if (data.type === 'line') {
+                        context.beginPath();
+                        const { x1, y1, x2, y2 } = data;
+                        pencil.drawLine(context, new Line(x1, y1, x2, y2));
+                        context.closePath();
+                    }
+
+                    if (data.type === 'rectangle') {
+                        const { x, y, width, height, strokeColor, fillColor, outlined } = data;
+                        const color = outlined ? strokeColor : fillColor;
+                        context.beginPath();
+                        const rect = new Rectangle(x, y, width, height, color, outlined);
+                        rect.draw(context);
+                        context.closePath();
+                    }
+                })
             }
-            else {
-                context.fillStyle = rect.color;
-                context.fill();
-            }
-            context.closePath();
-        })
+
+        }
+        else {
+            context.clearRect(0, 0, width, height);
+        }
     }
 
     const draw = ({ nativeEvent }) => {
@@ -172,53 +259,6 @@ function Canvas({
         }
     }
 
-    const stopDraw = ({ nativeEvent }) => {
-        const context = contextRef.current;
-        const { offsetX, offsetY } = nativeEvent;
-
-        if (
-            offsetX === prevCoords.current.x
-            && offsetY === prevCoords.current.y
-            && paintAction === PaintAction.PEN
-        ) {
-            fillCircle(context, offsetX, offsetY, strokeWidth / 2, strokeColor);
-        }
-
-        if (drawing) {
-            setDrawing(false);
-            context.closePath();
-        }
-
-        if (paintAction === PaintAction.RECT_STROKE) {
-            setRects([...rects,
-            {
-                x: drawX,
-                y: drawY,
-                width: rectWidth,
-                height: rectHeight,
-                fill: false,
-                color: strokeColor
-            }
-            ]);
-        }
-        else if (paintAction === PaintAction.RECT_FILL) {
-            setRects([...rects,
-            {
-                x: drawX,
-                y: drawY,
-                width: rectWidth,
-                height: rectHeight,
-                fill: true,
-                color: fillColor
-            }
-            ]);
-        }
-
-        const imageData = context.getImageData(0, 0, width, height);
-
-        dispatch(actions.addImageData({ data: imageData }));
-    }
-
     const penDraw = (e) => {
         const context = contextRef.current;
         const { offsetX, offsetY } = e;
@@ -231,20 +271,27 @@ function Canvas({
         context.lineTo(offsetX, offsetY);
         context.stroke();
 
+        const data = {
+            type: "line",
+            x1: startDrawPositionRef.current.x,
+            y1: startDrawPositionRef.current.y,
+            x2: offsetX,
+            y2: offsetY,
+            strokeColor: strokeColor,
+            strokeWidth: strokeWidth
+        }
+
+        drawDataBufferRef.current.push(data);
+        startDrawPositionRef.current = { x: offsetX, y: offsetY };
     }
 
     const drawShape = (e, shape) => {
         const context = contextRef.current;
         const { offsetX, offsetY } = e;
 
-        context.lineCap = lineCap;
-        context.lineJoin = lineJoin;
-        context.lineWidth = strokeWidth;
-        context.strokeStyle = strokeColor;
-
         context.clearRect(0, 0, width, height);
 
-        drawState(e);
+        drawUpdate();
 
         context.beginPath();
 
@@ -286,29 +333,33 @@ function Canvas({
                 context.fillStyle = fillColor;
                 context.fill();
             };
+
+            context.closePath();
         }
+
+
     }
 
     const clear = () => {
-        const context = contextRef.current;
-        context.clearRect(0, 0, width, height);
+        drawDataRef.current = [];
+        drawUpdate();
         dispatch(actions.clearImageDataSuccess());
-
-        const initialImageData = context.getImageData(0, 0, width, height);
-        dispatch(actions.addImageData({ data: initialImageData }));
-
-        setRects([]);
     }
 
     const undo = () => {
-        const context = contextRef.current;
-        context.putImageData(imageDataArray[imageDataIndex], 0, 0);
+        if(drawDataRef.current.length > 0){
+            cacheDrawDataRef.current.push(drawDataRef.current.pop());
+        }
+        
+        drawUpdate();
         dispatch(actions.undoSuccess());
     }
 
     const redo = () => {
-        const context = contextRef.current;
-        context.putImageData(imageDataArray[imageDataIndex], 0, 0);
+        if (cacheDrawDataRef.current.length > 0) {
+            drawDataRef.current.push(cacheDrawDataRef.current.pop());
+            drawUpdate();      
+        }
         dispatch(actions.redoSuccess());
     }
 
