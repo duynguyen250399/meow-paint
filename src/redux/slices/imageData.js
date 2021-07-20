@@ -7,7 +7,8 @@ export const imageDataSlice = createSlice({
         imageDataIndex: -1,
         clear: false,
         undo: false,
-        redo: false
+        redo: false,
+        save: false
     },
     reducers: {
         clearImageData: (state) => {
@@ -35,6 +36,12 @@ export const imageDataSlice = createSlice({
         },
         redoSuccess: (state) => {
             state.redo = false;
+        },
+        savePaint: (state) => {
+            state.save = true;
+        },
+        savePaintSuccess: (state) => {
+            state.save = false;
         }
     }
 })
@@ -45,5 +52,6 @@ export const selectImageDataIndex = state => state.imageData.imageDataIndex;
 export const selectClear = state => state.imageData.clear;
 export const selectUndo = state => state.imageData.undo;
 export const selectRedo = state => state.imageData.redo;
+export const selectSave = state => state.imageData.save;
 
 export default imageDataSlice.reducer;

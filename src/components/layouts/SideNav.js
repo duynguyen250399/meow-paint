@@ -52,6 +52,12 @@ function SideNav() {
         dispatch(actions.redo({ index }));
     }
 
+    const onSave = () =>{
+        if(imageDataArray && imageDataArray.length > 0){
+            dispatch(actions.savePaint());
+        }
+    }
+
     return (
         <div className='side-nav'>
             <div className='side-nav__app-logo'>
@@ -140,6 +146,7 @@ function SideNav() {
                         padding={10}
                         hoverColor={colors.primaryLight}
                         disabled={imageDataArray.length <= 1}
+                        onClick={onSave}
                     >
                         <SaveIcon width={17} height={17} className='mr-2' />
                         <span style={{ color: '#fff' }}>Save</span>

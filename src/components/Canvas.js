@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { PaintAction, Shape } from '../constants';
 import { actions } from '../redux/slices';
-import { selectClear, selectImageDataArray, selectImageDataIndex, selectRedo, selectUndo } from '../redux/slices/imageData';
+import { selectClear, selectImageDataArray, selectImageDataIndex, selectRedo, selectSave, selectUndo } from '../redux/slices/imageData';
 import { fillCircle } from '../utils/drawHelper';
 
 function Canvas({
@@ -36,6 +36,7 @@ function Canvas({
     const isClear = useSelector(selectClear);
     const isUndo = useSelector(selectUndo);
     const isRedo = useSelector(selectRedo);
+    const isSave = useSelector(selectSave);
     const imageDataIndex = useSelector(selectImageDataIndex);
     const imageDataArray = useSelector(selectImageDataArray);
 
@@ -89,6 +90,10 @@ function Canvas({
 
         if (isRedo) {
             redo();
+        }
+
+        if (isSave) {
+            saveImageData();
         }
 
         dataRef.current = {
@@ -307,6 +312,18 @@ function Canvas({
         dispatch(actions.redoSuccess());
     }
 
+    const saveImageData = () => {
+        const canvas = canvasRef.current;
+        const imageSource = canvas.toDataURL('image/png').replace("image/png", "image/octet-stream");
+        const saveLink = document.getElementById('saveLink');
+
+        saveLink.setAttribute('download', `meow-paint-${Date.now()}.png`);
+        saveLink.setAttribute('href', imageSource);
+        saveLink.click();
+
+        dispatch(actions.savePaintSuccess());
+    }
+
     return (
         <canvas
             ref={canvasRef}
@@ -316,7 +333,7 @@ function Canvas({
             style={{ ...style, cursor: `url(${cursorImage}) ${cursorOffsetX} ${cursorOffsetY}, auto` }}
             className={className}
         >
-
+            <a id='saveLink'></a>
         </canvas>
     )
 }

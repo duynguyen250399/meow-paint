@@ -48,12 +48,12 @@ function Button({
 
     const [buttonStyle, setButtonStyle] = useState(getStyle());
 
-    const onHover = (e) =>{
-        setButtonStyle({...buttonStyle, backgroundColor: hoverColor});
+    const onHover = (e) => {
+        setButtonStyle({ ...buttonStyle, backgroundColor: hoverColor });
     }
 
-    const onLeave = (e) =>{
-        setButtonStyle({...buttonStyle, backgroundColor: bgColor});
+    const onLeave = (e) => {
+        setButtonStyle({ ...buttonStyle, backgroundColor: bgColor });
     }
 
     return (
