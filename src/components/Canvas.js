@@ -22,7 +22,8 @@ function Canvas({
     height,
     bgColor = '#fff',
     style,
-    className
+    className,
+    onChangeData
 }) {
 
     const pencil = new Pencil(strokeColor, strokeWidth);
@@ -33,10 +34,8 @@ function Canvas({
         x: 0,
         y: 0
     });
-    const dataRef = useRef();
     const cacheDrawDataRef = useRef([]);
     const drawDataRef = useRef([]);
-    const drawDataIndexRef = useRef();
 
     const drawDataBufferRef = useRef([]);
     const startDrawPositionRef = useRef({
@@ -50,9 +49,6 @@ function Canvas({
     const isUndo = useSelector(selectUndo);
     const isRedo = useSelector(selectRedo);
     const isSave = useSelector(selectSave);
-    const imageDataIndex = useSelector(selectImageDataIndex);
-    const imageDataArray = useSelector(selectImageDataArray);
-
 
     const dispatch = useDispatch();
 
@@ -70,24 +66,17 @@ function Canvas({
 
         fillBackground();
 
-        window.addEventListener('keyup', (e) => {
-            if (e.ctrlKey && e.key === 'z') {
-                onPressUndo();
-            }
+        window.addEventListener('keyup', onWindowKeyup);
 
-            if (e.ctrlKey && e.key === 'y') {
-                onPressRedo();
-            }
-        });
+        window.addEventListener('resize', onWindowResize, null);
     }
 
     useEffect(() => {
         init();
 
         return () => {
-            window.removeEventListener('keyup', (e) => {
-                console.log('Keyup event has been discarded...');
-            });
+            window.removeEventListener('keyup', null);
+            window.removeEventListener('resize', null);
         }
     }, [])
 
@@ -108,12 +97,31 @@ function Canvas({
         if (isSave) {
             saveImageData();
         }
-
-        dataRef.current = {
-            index: imageDataIndex,
-            length: imageDataArray.length
-        }
     })
+
+    useEffect(() => {
+        if (onChangeData) {
+            onChangeData(drawDataRef.current);
+        }
+    }, [drawDataRef.current.length])
+
+    const onWindowResize = () => {
+        const canvas = canvasRef.current;
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        drawUpdate();
+    }
+
+    const onWindowKeyup = (e) => {
+        if (e.ctrlKey && e.key === 'z') {
+            onPressUndo();
+        }
+
+        if (e.ctrlKey && e.key === 'y') {
+            onPressRedo();
+        }
+    }
 
     const onPressUndo = () => {
         undo();
@@ -187,11 +195,11 @@ function Canvas({
             });
         }
 
-        updateDrawData();
+        addDrawData();
 
     }
 
-    const updateDrawData = () => {
+    const addDrawData = () => {
         if (drawDataRef.current.length > 0) {
             const lastIndex = drawDataRef.current.length - 1;
             drawDataRef.current.push([...drawDataRef.current[lastIndex], ...drawDataBufferRef.current]);
@@ -347,18 +355,19 @@ function Canvas({
     }
 
     const undo = () => {
-        if(drawDataRef.current.length > 0){
+        if (drawDataRef.current.length > 0) {
             cacheDrawDataRef.current.push(drawDataRef.current.pop());
-        }
-        
-        drawUpdate();
+            onChangeData(drawDataRef.current);
+            drawUpdate();
+        }  
         dispatch(actions.undoSuccess());
     }
 
     const redo = () => {
         if (cacheDrawDataRef.current.length > 0) {
             drawDataRef.current.push(cacheDrawDataRef.current.pop());
-            drawUpdate();      
+            onChangeData(drawDataRef.current);
+            drawUpdate();
         }
         dispatch(actions.redoSuccess());
     }

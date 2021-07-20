@@ -72,12 +72,20 @@ function ColorPicker({
             })
     }, [])
 
+    const getTextColor = () =>{
+        if(color.toLowerCase().startsWith('#f')){
+            return '#dedede';
+        }
+
+        return color;
+    }
+
     return (
         <div className={className}>
             <div className='title-color-picker'>{title}</div>
             <button className={`${elementClassName} btn-color-picker`}>
                 <div style={{ backgroundColor: color }} className='color-review'></div>
-                <div className='value-text-color-picker' style={{ color: color.toLowerCase() === '#ffffff' ? '#dedede' : color }}>{valueText}</div>
+                <div className='value-text-color-picker' style={{ color: getTextColor() }}>{valueText}</div>
             </button>
         </div>
     )

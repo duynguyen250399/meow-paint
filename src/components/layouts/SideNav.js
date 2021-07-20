@@ -12,7 +12,7 @@ import Button from '../Button';
 import { colors } from '../../constants/theme';
 import { selectImageDataArray, selectImageDataIndex } from '../../redux/slices/imageData';
 import { paintConfig } from '../../constants/paintConfig';
-import { selectPaintAction } from '../../redux/slices/app';
+import { selectDisabledSaveButton, selectPaintAction } from '../../redux/slices/app';
 import PaintActionButton from '../PaintActionButton';
 
 function SideNav() {
@@ -22,6 +22,7 @@ function SideNav() {
     const imageDataIndex = useSelector(selectImageDataIndex);
     const imageDataArray = useSelector(selectImageDataArray);
 
+    const saveDisabled = useSelector(selectDisabledSaveButton);
     const paintAction = useSelector(selectPaintAction);
 
     const dispatch = useDispatch();
@@ -145,7 +146,7 @@ function SideNav() {
                         className='w-100'
                         padding={10}
                         hoverColor={colors.primaryLight}
-                        disabled={imageDataArray.length <= 1}
+                        disabled={saveDisabled}
                         onClick={onSave}
                     >
                         <SaveIcon width={17} height={17} className='mr-2' />
